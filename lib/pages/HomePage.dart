@@ -15,6 +15,7 @@ class Homepage extends StatefulWidget {
 class _HomepageState extends State<Homepage> {
   TextEditingController message = TextEditingController();
   List<Map<String, dynamic>>? data;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: ListView.builder(
@@ -47,6 +49,10 @@ class _HomepageState extends State<Homepage> {
                 );
               },
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: isLoading ? CircularProgressIndicator() : SizedBox.shrink(),
           ),
           Padding(
             padding: const EdgeInsets.only(
@@ -82,10 +88,19 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future _doLogic() async {
+    setState(() {
+      isLoading = true;
+    });
     await Message.instance.insertMessage(message.text, 'user');
-    final reply = await getGptReply(message.text);
+    await _loadMessage();
     message.clear();
+    final length = data?.length ?? 0;
+    final lastMessage = data![length - 1]['message'];
+    final reply = await getGptReply(lastMessage);
     await Message.instance.insertMessage(reply, 'assistant');
     _loadMessage();
+    setState(() {
+      isLoading = false;
+    });
   }
 }
