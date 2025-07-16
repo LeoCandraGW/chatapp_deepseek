@@ -37,7 +37,7 @@ class Message {
     final db = await instance.database;
     await db.insert('message', {
       'message': message,
-      'role' : role,
+      'role': role,
       'createdAt': DateTime.now().toString(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
@@ -45,5 +45,22 @@ class Message {
   Future<List<Map<String, dynamic>>> listMessages() async {
     final db = await instance.database;
     return await db.query('message');
+  }
+
+  Future<String> newMessages() async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'message',
+      columns: ['message'],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['message'] as String;
+    } else {
+      throw Exception('No todo items found');
+    }
   }
 }

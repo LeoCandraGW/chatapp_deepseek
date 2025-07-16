@@ -94,8 +94,7 @@ class _HomepageState extends State<Homepage> {
     await Message.instance.insertMessage(message.text, 'user');
     await _loadMessage();
     message.clear();
-    final length = data?.length ?? 0;
-    final lastMessage = data![length - 1]['message'];
+    final lastMessage = await Message.instance.newMessages();
     final reply = await getGptReply(lastMessage);
     await Message.instance.insertMessage(reply, 'assistant');
     _loadMessage();
