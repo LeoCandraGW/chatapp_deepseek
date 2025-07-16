@@ -26,6 +26,7 @@ class Message {
     await db.execute('''
       CREATE TABLE message(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER,
         role TEXT,
         message TEXT,
         createdAt TEXT
@@ -33,18 +34,19 @@ class Message {
 ''');
   }
 
-  Future<void> insertMessage(String message, String role) async {
+  Future<void> insertMessage(String message, String role, int chat_id) async {
     final db = await instance.database;
     await db.insert('message', {
       'message': message,
+      'chat_id': chat_id,
       'role': role,
       'createdAt': DateTime.now().toString(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<List<Map<String, dynamic>>> listMessages() async {
+  Future<List<Map<String, dynamic>>> listMessages(int id) async {
     final db = await instance.database;
-    return await db.query('message');
+    return await db.query('message', where: 'chat_id = ?', whereArgs: [id]);
   }
 
   Future<String> newMessages() async {
@@ -62,5 +64,11 @@ class Message {
     } else {
       throw Exception('No todo items found');
     }
+  }
+
+  Future<void> deleteMessages(int chat_id) async {
+    final db = await instance.database;
+
+    await db.delete('message', where: 'chat_id = ?', whereArgs: [chat_id]);
   }
 }

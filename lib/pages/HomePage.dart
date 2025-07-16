@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:gpt_app/datas/DataSource.dart';
+import 'package:gpt_app/datas/chat.dart';
 import 'package:gpt_app/datas/message.dart';
-import 'package:gpt_app/pages/components/customTextField.dart';
-import 'package:gpt_app/pages/components/messageCard.dart';
+import 'package:gpt_app/static/Navigation.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -13,93 +12,194 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  TextEditingController message = TextEditingController();
-  List<Map<String, dynamic>>? data;
-  bool isLoading = false;
+  List<Map<String, dynamic>>? chats;
+  int? id;
 
   @override
   void initState() {
     super.initState();
-    _loadMessage();
+    _loadChat();
   }
 
-  Future _loadMessage() async {
-    final result = await Message.instance.listMessages();
+  Future _loadChat() async {
+    final results = await Chat.instance.fetchChat();
     setState(() {
-      data = result;
+      chats = results;
     });
+  }
+
+  Future _createChat() async {
+    await Chat.instance.createChat();
+  }
+
+  Future _newChat() async {
+    final results = await Chat.instance.newChat();
+    setState(() {
+      id = results;
+    });
+  }
+
+  Future _deleteChat(int id) async {
+    await Chat.instance.deleteChat(id);
+    await Message.instance.deleteMessages(id);
+    _loadChat();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isEmpty = chats == null || chats!.isEmpty;
+
     return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          Expanded(
-            child: ListView.builder(
-              reverse: true,
-              itemCount: data?.length ?? 0,
-              itemBuilder: (context, index) {
-                final reversedIndex = (data?.length ?? 0) - 1 - index;
-                final messages = data?[reversedIndex];
-                return MessageCard(
-                  message: messages?['message'] ?? 'no message',
-                  role: messages?['role'] ?? 'no role',
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: isLoading ? CircularProgressIndicator() : SizedBox.shrink(),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(
-              top: 10,
-              left: 10,
-              right: 10,
-              bottom: 30,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black),
-                borderRadius: BorderRadius.all(Radius.circular(10)),
-              ),
-              child: Row(
+          Container(
+            color: Color(0xffffeaa7),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CustomTextField(controller: message),
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: GestureDetector(
-                      onTap: () {
-                        _doLogic();
-                      },
-                      child: Icon(FontAwesomeIcons.paperPlane),
-                    ),
-                  ),
+                  Icon(FontAwesomeIcons.arrowDown),
+                  Padding(padding: const EdgeInsets.all(10)),
+                  Text('scrolldown to refresh'),
                 ],
               ),
+            ),
+          ),
+          RefreshIndicator(
+            onRefresh: _loadChat,
+            child: ListView(
+              physics: AlwaysScrollableScrollPhysics(),
+              children: [
+                Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Color(0xff55efc4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black,
+                        spreadRadius: 4,
+                        blurRadius: 0,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(child: Text('AI CHAT')),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: 20,
+                    bottom: 10,
+                  ),
+                  child: GestureDetector(
+                    onTap: () async {
+                      await _createChat();
+                      await _newChat();
+                      if (id != null) {
+                        Navigator.pushNamed(
+                          context,
+                          NavigationRoute.ChatPageRoute.name,
+                          arguments: id,
+                        );
+                      }
+                    },
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xff00b894),
+                            spreadRadius: 4,
+                            blurRadius: 0,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(child: Icon(FontAwesomeIcons.plus, color: Color(0xff00b894),)),
+                    ),
+                  ),
+                ),
+                if (isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Center(
+                      child: Text(
+                        'Start a new chat',
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                    ),
+                  )
+                else
+                  ...chats!.map((chat) {
+                    return Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            NavigationRoute.ChatPageRoute.name,
+                            arguments: chat['id'] ?? 0,
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.all(Radius.circular(5)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xfffd79a8),
+                                spreadRadius: 4,
+                                blurRadius: 0,
+                                offset: Offset(-2, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      chat['title'] ?? 'No Title',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      chat['createdAt'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  _deleteChat(chat['id'] ?? 0);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: Icon(
+                                    FontAwesomeIcons.trash,
+                                    color: Color(0xffd63031),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  Future _doLogic() async {
-    setState(() {
-      isLoading = true;
-    });
-    await Message.instance.insertMessage(message.text, 'user');
-    await _loadMessage();
-    message.clear();
-    final lastMessage = await Message.instance.newMessages();
-    final reply = await getGptReply(lastMessage);
-    await Message.instance.insertMessage(reply, 'assistant');
-    _loadMessage();
-    setState(() {
-      isLoading = false;
-    });
   }
 }

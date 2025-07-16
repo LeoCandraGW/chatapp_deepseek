@@ -15,13 +15,19 @@ class MessageCard extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isUser ? Colors.blueAccent : Colors.grey[300],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: isUser? Color(0xff0984e3) :Color(0xfffd79a8),
+              spreadRadius: 4,blurRadius: 0,offset: isUser? Offset(-2, 2) : Offset(2, 2)
+            )
+          ]
         ),
         child: Text(
           message,
           style: TextStyle(
-            color: isUser ? Colors.white : Colors.black,
+            color:  Colors.black,
             fontSize: 16
           ),
         ),
